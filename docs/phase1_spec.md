@@ -72,11 +72,12 @@ Inputs allowed: measured `q`, `qdot` (with simulated noise), `q_d`, commanded `u
 
 - Online expected elbow: `q_e,expected,online(t) = q_d,e(t)`, the planned reference elbow angle. Residual `e_syn = q_e - q_d,e`.
 - Known confound: under C1 the residual also contains ordinary tracking error. Handle by (a) causal windowed averaging as in charter 12.2, (b) gating on `u_abd`, and (c) measuring the residual's false-positive rate on `alpha = 0` trials across all directions (RQ2).
-- Severity estimate `alpha_hat` (drives C3). Model-based, from the windowed residual `e_hat` (charter 12.2):
-  `d_hat_e = K_eff,e * e_hat`, with `K_eff,e = K_p,e + K_h,e` (nominal elbow stiffnesses of robot and simulated human), then
-  `alpha_hat = clip( d_hat_e / (u_abd * tau_scale), 0, alpha_max )`, defined only when `u_abd > u_min`.
-  This is a quasi-static relation: the elbow settles where the restoring stiffness balances the synergy torque. It is least accurate during fast motion (inertial terms) and when the human command saturates (the human stiffness is then not delivered). Both are known limitations; a dynamic disturbance-observer form is a candidate refinement **[TBD-CAL]**.
-- The estimator uses nominal `K_h`. Mismatch between the estimator's `K_h` and the simulated human's true `K_h` is a named robustness test (Level 4), since `alpha_hat` accuracy depends on it directly.
+- Severity estimate `alpha_hat` (drives C3). Model-based, from the windowed elbow residual `e_hat = mean(q_e - q_ref,e)` (charter 12.2) and the robot's own previous elbow torque:
+  `d_hat_e = K_h,e * e_hat - mean(tau_robot,e)`, then
+  `alpha_hat = clip( d_hat_e / (u_abd * tau_scale), 0, alpha_max )`, defined only when `u_abd > u_min` and the window is full.
+  Derivation (flexion positive, at rest): `-K_h,e e + tau_robot,e + tau_syn = 0`. **Revision:** an earlier draft used `K_eff,e * e_hat` with `K_eff,e = K_p,e + K_h,e`. That is correct only while no cancellation is active; once C3 cancels part of the synergy the residual shrinks and the estimate would collapse toward zero (it would measure what is left over). Subtracting the robot's own torque, an input the estimator is allowed (previous robot commands), keeps the estimate correct for C0, C1 and C3 alike.
+  This is a quasi-static relation. It is biased during motion (inertial terms and any mismatch in the person's internal model) and when the human command saturates (the human stiffness is then not delivered). A dynamic disturbance-observer form is a candidate refinement **[TBD-CAL]**.
+- The estimator uses a nominal `K_h` (`k_h_e`). Mismatch between it and the simulated human's true `K_h`, and between the person's internal arm model and the real arm, are named robustness tests (Level 4), since `alpha_hat` accuracy depends on them directly.
 - Keep `u_abd` observability explicit: the estimator receives the commanded `u_abd` as an input (charter 12.2); it does not need to infer it.
 - Outputs: `e_hat`, `alpha_hat`, detection state, confidence, latency. Fallback to C1 if the estimate is invalid (charter section 14).
 - Dynamic-`u_abd` test (section 8) measures how quickly `alpha_hat` converges after a step, since the window length trades noise against latency.

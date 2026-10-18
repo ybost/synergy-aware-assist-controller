@@ -56,6 +56,9 @@ class TrialResult:
 
 
 def run_trial(cfg: TrialConfig, controller: Controller) -> TrialResult:
+    reset = getattr(controller, "reset", None)
+    if callable(reset):
+        reset()  # stateful controllers must not carry state between trials
     nominal = cfg.nominal if cfg.nominal is not None else cfg.arm
     ref = ReachReference(cfg.x0, cfg.x1, cfg.T, cfg.arm)
     tau_syn = synergy_torque(cfg.alpha, cfg.u_abd, cfg.human.tau_max_neg[1])  # tau_scale = tau_ext,max,e

@@ -61,6 +61,54 @@ class ImpedanceController:
         return self.gains.Kp * (obs.q_ref - obs.q) + self.gains.Kd * (obs.qd_ref - obs.qd)
 
 
+def _elbow_torque(alpha: float, u_abd: float, tau_scale: float) -> np.ndarray:
+    """Elbow-extension torque that cancels a synergy of severity alpha at demand u_abd."""
+    return np.array([0.0, -alpha * u_abd * tau_scale])
+
+
+class SynergyAwareController:
+    """C3: base controller plus estimated-synergy cancellation, -alpha_hat * u_abd * tau_scale.
+
+    The estimator is stateful; run_trial calls reset() before each trial.
+    """
+
+    def __init__(self, base: Controller, estimator, tau_scale: float):
+        self.base = base
+        self.estimator = estimator
+        self.tau_scale = tau_scale
+        self.estimates: list = []
+
+    def reset(self) -> None:
+        self.estimator.reset()
+        self.estimates = []
+
+    def torque(self, obs: Observation) -> np.ndarray:
+        est = self.estimator.update(obs)
+        self.estimates.append(est)
+        tau = np.asarray(self.base.torque(obs), dtype=float)
+        if est.valid and est.alpha_hat is not None:
+            tau = tau + _elbow_torque(est.alpha_hat, obs.u_abd, self.tau_scale)
+        return tau
+
+
+class OracleController:
+    """C-oracle: base controller plus cancellation using the TRUE alpha.
+
+    Uses ground truth, so it is not a realistic controller. It is an upper bound only and
+    must be labelled as such wherever it appears.
+    """
+
+    def __init__(self, base: Controller, alpha_true: float, tau_scale: float):
+        self.base = base
+        self.alpha_true = alpha_true
+        self.tau_scale = tau_scale
+
+    def torque(self, obs: Observation) -> np.ndarray:
+        return np.asarray(self.base.torque(obs), dtype=float) + _elbow_torque(
+            self.alpha_true, obs.u_abd, self.tau_scale
+        )
+
+
 def limit_torque(tau: np.ndarray, tau_prev: np.ndarray, limits: RobotLimits, dt: float) -> np.ndarray:
     """Rate-limit the change from the previous command, then saturate the magnitude."""
     step = np.clip(tau - tau_prev, -limits.rate_max * dt, limits.rate_max * dt)
