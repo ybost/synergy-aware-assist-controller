@@ -127,6 +127,19 @@ def test_reference_is_shared_across_alpha_and_u_abd_and_cached(make_cfg, impedan
     assert a is b
 
 
+def test_reference_is_noise_free_and_shared_across_noise_levels(make_cfg, impedance_gains):
+    from synergy_aware.simulation import NoiseConfig
+
+    refs = ReferenceSet(ImpedanceController(impedance_gains))
+    quiet = refs.get(make_cfg(t_end=1.0))
+    noisy = refs.get(make_cfg(t_end=1.0, noise=NoiseConfig(5e-3, 2.0, seed=3)))
+    assert quiet is noisy
+    fresh = ReferenceSet(ImpedanceController(impedance_gains)).get(
+        make_cfg(t_end=1.0, noise=NoiseConfig(5e-3, 2.0, seed=3))
+    )
+    np.testing.assert_array_equal(quiet, fresh)  # built without noise even when the cfg has noise
+
+
 def test_frozen_reference_set_rejects_new_conditions(make_cfg, impedance_gains):
     refs = ReferenceSet(ImpedanceController(impedance_gains))
     refs.get(make_cfg(t_end=1.0))

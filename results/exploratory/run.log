@@ -1,0 +1,13 @@
+alpha=0.1 noise=none   C3 J=  15.41  C2 dK=  8192.0 matched=True
+alpha=0.1 noise=low    C3 J=  15.80  C2 dK=   724.1 matched=True
+alpha=0.1 noise=medium C3 J=  16.85  C2 dK=   362.0 matched=True
+alpha=0.1 noise=high   C3 J=  22.78  C2 dK=   152.2 matched=True
+alpha=0.2 noise=none   C3 J=  61.64  C2 dK=  8192.0 matched=True
+alpha=0.2 noise=low    C3 J=  62.07  C2 dK=  1448.2 matched=True
+alpha=0.2 noise=medium C3 J=  63.16  C2 dK=   724.1 matched=True
+alpha=0.2 noise=high   C3 J=  69.27  C2 dK=   512.0 matched=True
+alpha=0.3 noise=none   C3 J= 138.67  C2 dK=  4096.0 matched=False
+alpha=0.3 noise=low    C3 J= 139.14  C2 dK=  2048.0 matched=True
+alpha=0.3 noise=medium C3 J= 140.27  C2 dK=  2048.0 matched=True
+alpha=0.3 noise=high   C3 J= 146.57  C2 dK=   724.1 matched=True
+wrote 150 trials to C:\Users\ybost\Documents\Projects\synergy-breaking-controller\synergy-breaking-controllerRepo\results\exploratory

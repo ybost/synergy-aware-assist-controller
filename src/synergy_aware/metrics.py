@@ -100,7 +100,8 @@ class ReferenceSet:
         if key not in self._cache:
             if self._frozen:
                 raise KeyError("reference set is frozen; this condition was not generated before freezing")
-            self._cache[key] = run_trial(replace(cfg, alpha=0.0), self._controller).q[:, 1].copy()
+            # alpha = 0 and noise-free sensing: the benchmark must not move with the noise level
+            self._cache[key] = run_trial(replace(cfg, alpha=0.0, noise=None), self._controller).q[:, 1].copy()
         return self._cache[key]
 
     def freeze(self) -> None:
