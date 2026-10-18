@@ -90,24 +90,38 @@ class SynergyAwareController:
     """C3: base controller plus estimated-synergy cancellation, -alpha_hat * u_abd * tau_scale.
 
     The estimator is stateful; run_trial calls reset() before each trial.
+
+    ramp_steps > 0 ramps the cancellation in linearly over that many control steps from
+    the first usable estimate (and restarts the ramp whenever the estimate becomes
+    unusable), instead of stepping it on. ramp_steps = 0 applies it at full strength
+    immediately.
     """
 
-    def __init__(self, base: Controller, estimator, tau_scale: float):
+    def __init__(self, base: Controller, estimator, tau_scale: float, ramp_steps: int = 0):
+        if int(ramp_steps) != ramp_steps or ramp_steps < 0:
+            raise ValueError("ramp_steps must be a non-negative integer")
         self.base = base
         self.estimator = estimator
         self.tau_scale = tau_scale
+        self.ramp_steps = int(ramp_steps)
         self.estimates: list = []
+        self._active_steps = 0
 
     def reset(self) -> None:
         self.estimator.reset()
         self.estimates = []
+        self._active_steps = 0
 
     def torque(self, obs: Observation) -> np.ndarray:
         est = self.estimator.update(obs)
         self.estimates.append(est)
         tau = np.asarray(self.base.torque(obs), dtype=float)
         if est.valid and est.alpha_hat is not None:
-            tau = tau + _elbow_torque(est.alpha_hat, obs.u_abd, self.tau_scale)
+            self._active_steps += 1
+            gain = 1.0 if self.ramp_steps == 0 else min(1.0, self._active_steps / self.ramp_steps)
+            tau = tau + gain * _elbow_torque(est.alpha_hat, obs.u_abd, self.tau_scale)
+        else:
+            self._active_steps = 0
         return tau
 
 

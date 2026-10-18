@@ -14,6 +14,16 @@ from .human import HumanParams
 from .simulation import TrialConfig
 
 
+# Placeholder sensor-noise levels: (q_sd [rad], qd_sd [rad/s]). qd_sd = 100 x q_sd is an
+# assumption (filtered differencing), not a measured sensor property.
+NOISE_LEVELS = {
+    "none": None,
+    "low": (5e-4, 0.05),
+    "medium": (1e-3, 0.10),
+    "high": (3e-3, 0.30),
+}
+
+
 def arm() -> ArmParams:
     return ArmParams(l1=0.30, l2=0.35, m1=2.0, m2=1.5, lc1=0.13, lc2=0.17, I1=0.02, I2=0.03, b=0.2)
 

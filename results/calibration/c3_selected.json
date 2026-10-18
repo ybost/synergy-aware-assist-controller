@@ -1,0 +1,21 @@
+{
+  "selected": {
+    "window": 100,
+    "ramp": 200,
+    "feasible": true,
+    "worst_E_AFE": 9.819111445563781e-05,
+    "worst_DJ_ratio": 0.9791915223529956,
+    "mean_J_tau": 66.16267197796725
+  },
+  "n_feasible": 4,
+  "n_grid": 25,
+  "note": "placeholder parameters; provisional",
+  "cal_alphas": [
+    0.15,
+    0.25
+  ],
+  "cal_seeds": [
+    200,
+    201
+  ]
+}

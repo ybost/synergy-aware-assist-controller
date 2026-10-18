@@ -126,6 +126,42 @@ def test_c3_falls_back_to_the_base_controller_when_estimate_unusable(impedance_g
     np.testing.assert_array_equal(c3.torque(obs), base.torque(obs))
 
 
+def test_c3_ramps_the_cancellation_in_linearly(impedance_gains):
+    base = ImpedanceController(impedance_gains)
+    obs = _obs(u=1.0)
+    c3 = SynergyAwareController(base, _FakeEstimator(Estimate(0.0, 0.4, True)), TAU_SCALE, ramp_steps=4)
+    full = 0.4 * TAU_SCALE
+    extra = [(c3.torque(obs) - base.torque(obs))[1] for _ in range(6)]
+    np.testing.assert_allclose(extra, [-full * f for f in (0.25, 0.5, 0.75, 1.0, 1.0, 1.0)])
+
+
+def test_c3_ramp_restarts_when_the_estimate_becomes_unusable(impedance_gains):
+    base = ImpedanceController(impedance_gains)
+    fake = _FakeEstimator(Estimate(0.0, 0.4, True))
+    c3 = SynergyAwareController(base, fake, TAU_SCALE, ramp_steps=2)
+    for _ in range(3):
+        c3.torque(_obs())
+    fake.estimate = Estimate(0.0, None, True)
+    np.testing.assert_array_equal(c3.torque(_obs()), base.torque(_obs()))
+    fake.estimate = Estimate(0.0, 0.4, True)
+    assert (c3.torque(_obs()) - base.torque(_obs()))[1] == pytest.approx(-0.4 * TAU_SCALE * 0.5)  # ramp began again
+
+
+def test_c3_reset_restarts_the_ramp(impedance_gains):
+    base = ImpedanceController(impedance_gains)
+    c3 = SynergyAwareController(base, _FakeEstimator(Estimate(0.0, 0.4, True)), TAU_SCALE, ramp_steps=2)
+    c3.torque(_obs())
+    c3.torque(_obs())
+    c3.reset()
+    assert (c3.torque(_obs()) - base.torque(_obs()))[1] == pytest.approx(-0.4 * TAU_SCALE * 0.5)
+
+
+@pytest.mark.parametrize("bad", [-1, 1.5])
+def test_c3_rejects_invalid_ramp(impedance_gains, bad):
+    with pytest.raises(ValueError):
+        SynergyAwareController(ImpedanceController(impedance_gains), _FakeEstimator(None), TAU_SCALE, ramp_steps=bad)
+
+
 def test_oracle_uses_the_true_alpha(impedance_gains):
     base = ImpedanceController(impedance_gains)
     obs = _obs(u=0.5)
