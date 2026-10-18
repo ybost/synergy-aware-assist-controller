@@ -11,3 +11,6 @@ venv/
 
 # raw simulation output; commit final figures only
 results/raw/
+
+# regenerable run logs (contain local paths)
+results/**/run.log
