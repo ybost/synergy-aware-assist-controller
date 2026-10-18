@@ -9,6 +9,8 @@ from synergy_aware.arm import (
     fk,
     ik,
     integrate,
+    jacobian,
+    jacobian_dot_qd,
     kinetic_energy,
     mass_matrix,
 )
@@ -99,6 +101,26 @@ def test_fk_known_postures(params):
 def test_ik_fk_round_trip(params, q_grid):
     for q in q_grid:
         np.testing.assert_allclose(ik(fk(q, params), params), q, atol=1e-9)
+
+
+def test_jacobian_matches_finite_difference_of_fk(params, q_grid):
+    eps = 1e-6
+    for q in q_grid:
+        J = jacobian(q, params)
+        for k in range(2):
+            dq = np.zeros(2)
+            dq[k] = eps
+            col = (fk(q + dq, params) - fk(q - dq, params)) / (2 * eps)
+            np.testing.assert_allclose(J[:, k], col, atol=1e-8)
+
+
+def test_jacobian_dot_qd_matches_finite_difference(params, q_grid):
+    rng = np.random.default_rng(1)
+    eps = 1e-6
+    for q in q_grid:
+        qd = rng.uniform(-2.0, 2.0, size=2)
+        dJ = (jacobian(q + eps * qd, params) - jacobian(q - eps * qd, params)) / (2 * eps)
+        np.testing.assert_allclose(jacobian_dot_qd(q, qd, params), dJ @ qd, atol=1e-6)
 
 
 @pytest.mark.skip(reason="Joint-limit behaviour not yet specified (spec section 2, TBD-CAL)")

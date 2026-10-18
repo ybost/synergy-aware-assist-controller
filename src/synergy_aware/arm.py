@@ -74,6 +74,24 @@ def ik(x: np.ndarray, p: ArmParams) -> np.ndarray:
     return np.array([q_s, q_e])
 
 
+def jacobian(q: np.ndarray, p: ArmParams) -> np.ndarray:
+    """Return the hand Jacobian J(q) with xdot = J qd, shape (2, 2)."""
+    a1, a12 = q[0], q[0] + q[1]
+    s1, c1 = np.sin(a1), np.cos(a1)
+    s12, c12 = np.sin(a12), np.cos(a12)
+    return np.array([[-p.l1 * s1 - p.l2 * s12, -p.l2 * s12], [p.l1 * c1 + p.l2 * c12, p.l2 * c12]])
+
+
+def jacobian_dot_qd(q: np.ndarray, qd: np.ndarray, p: ArmParams) -> np.ndarray:
+    """Return (dJ/dt) qd, the velocity-dependent part of the hand acceleration."""
+    a1, a12 = q[0], q[0] + q[1]
+    s1, c1 = np.sin(a1), np.cos(a1)
+    s12, c12 = np.sin(a12), np.cos(a12)
+    dJ_dqs = np.array([[-p.l1 * c1 - p.l2 * c12, -p.l2 * c12], [-p.l1 * s1 - p.l2 * s12, -p.l2 * s12]])
+    dJ_dqe = np.array([[-p.l2 * c12, -p.l2 * c12], [-p.l2 * s12, -p.l2 * s12]])
+    return (dJ_dqs * qd[0] + dJ_dqe * qd[1]) @ qd
+
+
 TorqueFn = Callable[[float, np.ndarray, np.ndarray], np.ndarray]
 
 
