@@ -19,3 +19,4 @@ where = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = ["slow: end-to-end tests that run many trials (deselect with -m 'not slow')"]

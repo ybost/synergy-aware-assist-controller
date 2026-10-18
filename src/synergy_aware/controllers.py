@@ -61,6 +61,26 @@ class ImpedanceController:
         return self.gains.Kp * (obs.q_ref - obs.q) + self.gains.Kd * (obs.qd_ref - obs.qd)
 
 
+class ElbowBoostController:
+    """C2: base controller plus always-on extra elbow stiffness and damping.
+
+    Generic assistance: no detection and no use of u_abd. The extra gains are set by the
+    budget-matching rule in matching.py.
+    """
+
+    def __init__(self, base: Controller, dK: float, dD: float):
+        if dK < 0.0 or dD < 0.0:
+            raise ValueError("dK and dD must be non-negative")
+        self.base = base
+        self.dK = dK
+        self.dD = dD
+
+    def torque(self, obs: Observation) -> np.ndarray:
+        tau = np.array(self.base.torque(obs), dtype=float)
+        tau[1] += self.dK * (obs.q_ref[1] - obs.q[1]) + self.dD * (obs.qd_ref[1] - obs.qd[1])
+        return tau
+
+
 def _elbow_torque(alpha: float, u_abd: float, tau_scale: float) -> np.ndarray:
     """Elbow-extension torque that cancels a synergy of severity alpha at demand u_abd."""
     return np.array([0.0, -alpha * u_abd * tau_scale])
