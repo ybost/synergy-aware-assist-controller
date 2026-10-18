@@ -31,6 +31,44 @@ def human_params():
 
 
 @pytest.fixture
+def robot_limits():
+    """Test-only robot limits. NOT calibration values (charter section 14, TBD-CAL)."""
+    from synergy_aware.controllers import RobotLimits
+
+    return RobotLimits(tau_max=np.array([40.0, 30.0]), rate_max=np.array([2000.0, 2000.0]))
+
+
+@pytest.fixture
+def impedance_gains():
+    """Test-only C1 gains. NOT calibration values."""
+    from synergy_aware.controllers import ImpedanceGains
+
+    return ImpedanceGains(Kp=np.array([120.0, 80.0]), Kd=np.array([6.0, 4.0]))
+
+
+@pytest.fixture
+def make_cfg(damped_params, human_params, robot_limits, reach_endpoints):
+    """Factory for trial configs: make_cfg(alpha=..., u_abd=...)."""
+    from synergy_aware.simulation import TrialConfig
+
+    def _make(**overrides):
+        base = dict(
+            arm=damped_params,
+            human=human_params,
+            limits=robot_limits,
+            x0=reach_endpoints[0],
+            x1=reach_endpoints[1],
+            T=1.0,
+            t_end=3.0,
+            dt=1e-3,
+        )
+        base.update(overrides)
+        return TrialConfig(**base)
+
+    return _make
+
+
+@pytest.fixture
 def reach_endpoints() -> tuple[np.ndarray, np.ndarray]:
     """A 0.2 m forward reach well inside the workspace, away from singularities."""
     return np.array([0.35, 0.15]), np.array([0.50, 0.30])
